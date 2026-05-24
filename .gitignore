@@ -1,0 +1,5 @@
+node_modules/
+.pigmemory/
+*.log
+fix.py
+ai_studio_code*.html

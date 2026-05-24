@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PigIDE | Intent Into Motion</title>
+<style>
+    @font-face {
+        font-family: 'Syne';
+        font-style: normal;
+        font-weight: 800;
+        src: local('Syne ExtraBold'), local('Syne-ExtraBold'), url(https://fonts.gstatic.com/s/syne/v22/8vIJ7w4brlHql_x-z20t8H2n.woff2) format('woff2');
+    }
+    @font-face {
+        font-family: 'Syne';
+        font-style: normal;
+        font-weight: 700;
+        src: local('Syne Bold'), local('Syne-Bold'), url(https://fonts.gstatic.com/s/syne/v22/8vIJ7w4brlHql_x-z20t8H2n.woff2) format('woff2');
+    }
+    @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 400;
+        src: local('Inter Regular'), local('Inter-Regular'), url(https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7W0Q5nw.woff2) format('woff2');
+    }
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    html.lenis, html.lenis body {
+        height: auto;
+    }
+    .lenis.lenis-smooth {
+        scroll-behavior: auto !important;
+    }
+    .lenis.lenis-smooth [data-lenis-prevent] {
+        overscroll-behavior: contain;
+    }
+    .lenis.lenis-stopped {
+        overflow: hidden;
+    }
+    .lenis.lenis-smooth iframe {
+        pointer-events: none;
+    }
+    body {
+        background-color: #0d090a;
+        color: #ffffff;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        cursor: crosshair;
+    }
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+    }
+    #smooth-wrapper {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        overflow: hidden;
+    }
+    .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 2rem 4rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 100;
+        mix-blend-mode: difference;
+    }
+    .logo {
+        font-family: 'Syne', system-ui, sans-serif;
+        font-weight: 800;
+        font-size: 1.5rem;
+        letter-spacing: -0.05em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+    }
+    .logo img {
+        height: 1.2em;
+        margin-right: 0.75rem;
+        border-radius: 4px;
+    }
+    .nav-links {
+        display: flex;
+        gap: 2rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    section {
+        position: relative;
+        width: 100%;
+    }
+    .hero {
+        height: 150vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 4rem;
+        margin-top: -20vh;
+    }
+    h1 {
+        font-family: 'Syne', system-ui, sans-serif;
+        font-size: clamp(4rem, 11vw, 15rem);
+        font-weight: 800;
+        line-height: 0.85;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+        max-width: 1300px;
+        mix-blend-mode: overlay;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    .hero-sub {
+        margin-top: 2rem;
+        font-size: clamp(1rem, 2vw, 1.5rem);
+        max-width: 550px;
+        line-height: 1.5;
+        font-weight: 400;
+        opacity: 0.9;
+        mix-blend-mode: difference;
+    }
+    .manifesto {
+        min-height: 150vh;
+        display: flex;
+        align-items: center;
+        padding: 0 4rem;
+    }
+    .manifesto-text {
+        font-family: 'Syne', system-ui, sans-serif;
+        font-size: clamp(2rem, 6vw, 6rem);
+        font-weight: 700;
+        line-height: 1;
+        max-width: 1400px;
+        margin-left: auto;
+        text-align: right;
+    }
+    .highlight {
+        color: #ff3366;
+        -webkit-text-stroke: 1px transparent;
+    }
+    .features {
+        min-height: 200vh;
+        padding: 10rem 4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 30vh;
+    }
+    .feature-block {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+    }
+    .feature-block:nth-child(even) {
+        grid-template-columns: 1.5fr 1fr;
+        direction: rtl;
+    }
+    .feature-block:nth-child(even) > * {
+        direction: ltr;
+    }
+    .feature-title {
+        font-family: 'Syne', system-ui, sans-serif;
+        font-size: clamp(3rem, 5vw, 5rem);
+        font-weight: 800;
+        line-height: 0.9;
+        margin-bottom: 2rem;
+    }
+    .feature-desc {
+        font-size: 1.25rem;
+        line-height: 1.6;
+        font-weight: 400;
+        opacity: 0.8;
+        max-width: 500px;
+    }
+    .marquee-section {
+        height: 50vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        background: #000;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .marquee {
+        white-space: nowrap;
+        font-family: 'Syne', system-ui, sans-serif;
+        font-size: 10vw;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: transparent;
+        -webkit-text-stroke: 2px rgba(255, 255, 255, 0.2);
+    }
+    .cta {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+    .cta h2 {
+        font-family: 'Syne', system-ui, sans-serif;
+        font-size: clamp(4rem, 10vw, 12rem);
+        font-weight: 800;
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+        margin-bottom: 3rem;
+        mix-blend-mode: difference;
+    }
+    .btn {
+        padding: 1.5rem 4rem;
+        border: 1px solid rgba(255,255,255,0.5);
+        border-radius: 100px;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 500;
+        cursor: pointer;
+        background: transparent;
+        color: #fff;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #ff3366;
+        z-index: -1;
+        transform: scaleY(0);
+        transform-origin: bottom;
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn:hover {
+        color: #000;
+        border-color: #ff3366;
+    }
+    .btn:hover::before {
+        transform: scaleY(1);
+    }
+    .gsap-reveal {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    .feature-img-wrapper {
+        perspective: 1200px;
+    }
+    .feature-img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        object-fit: cover;
+        transform: rotateY(-8deg) scale(0.95);
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
+    }
+    .feature-block:nth-child(even) .feature-img {
+        transform: rotateY(8deg) scale(0.95);
+    }
+    .feature-img:hover {
+        transform: rotateY(0deg) scale(1.02);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 51, 102, 0.4);
+    }
+    @media (max-width: 768px) {
+        .nav { padding: 1.5rem 2rem; }
+        .hero { padding: 0 2rem; margin-top: -10vh; }
+        .manifesto { padding: 0 2rem; }
+        .features { padding: 5rem 2rem; gap: 15vh; }
+        .feature-block, .feature-block:nth-child(even) { grid-template-columns: 1fr; gap: 2rem; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="webgl"></canvas>
+
+<nav class="nav">
+    <div class="logo"><img src="./assets/icon.png" alt="PigIDE"> PigIDE.</div>
+    <div class="nav-links">
+        <span>Swarm</span>
+        <span>Memory</span>
+        <span>Agents</span>
+    </div>
+</nav>
+
+<div id="smooth-wrapper">
+    <div id="smooth-content">
+        <section class="hero">
+            <h1 class="gsap-reveal">Intent Into<br>Motion</h1>
+            <p class="hero-sub gsap-reveal">A desktop IDE that hosts a pool of CLI coding agents as tiled terminal panes. You direct. The swarm builds.</p>
+        </section>
+
+        <section class="manifesto">
+            <div class="manifesto-text gsap-reveal">
+                You direct the orchestra. No more context switching. <span class="highlight">A workspace</span> where AI agents route intent into motion.
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature-block">
+                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target.png" alt="Swarm Orchestration" class="feature-img"></div>
+                <div>
+                    <h2 class="feature-title gsap-reveal">Swarm<br>Orchestration</h2>
+                    <p class="feature-desc gsap-reveal">Coordinate a roster of specialized agents: aider, claude, devin, and agy. Assign roles like Orchestrator, Builder, Reviewer, and Scout right from your panes.</p>
+                </div>
+            </div>
+            
+            <div class="feature-block">
+                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target_dark_screenshot.png" alt="Autonomous Workflow" class="feature-img"></div>
+                <div>
+                    <h2 class="feature-title gsap-reveal">Autonomous<br>Workflow</h2>
+                    <p class="feature-desc gsap-reveal">Built-in tasks state machine, file locks, and review gates with pass/fail votes keep the swarm aligned and code pristine across multiple agents.</p>
+                </div>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/chat.png" alt="Persistent Memory" class="feature-img"></div>
+                <div>
+                    <h2 class="feature-title gsap-reveal">Persistent<br>Memory</h2>
+                    <p class="feature-desc gsap-reveal">Long-term context saved in .pigmemory with full-text search, wikilinks, and fuzzy project resolution ensures your swarm never forgets a decision.</p>
+                </div>
+            </div>
+            <div class="feature-block">
+                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target_light_screenshot.png" alt="PigVoice" class="feature-img"></div>
+                <div>
+                    <h2 class="feature-title gsap-reveal">PigVoice<br>Integration</h2>
+                    <p class="feature-desc gsap-reveal">Instant sub-300ms voice-to-text. Stream your intent directly via an on-device Whisper engine, capturing partials flawlessly with LocalAgreement-2 stabilization.</p>
+                </div>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/panel.png" alt="Watcher" class="feature-img"></div>
+                <div>
+                    <h2 class="feature-title gsap-reveal">Background<br>Watcher</h2>
+                    <p class="feature-desc gsap-reveal">A seamless supervisor utilizing Gemini Flash-Lite that monitors agent stdout, classifies logs, and intelligently escalates blockers to human review without hanging your workflow.</p>
+                </div>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target_dark_screenshot.png" alt="Skills" class="feature-img" style="filter: hue-rotate(90deg) saturate(1.5);"></div>
+                <div>
+                    <h2 class="feature-title gsap-reveal">Extensible<br>Skills</h2>
+                    <p class="feature-desc gsap-reveal">Dynamic Architect prompt-modules. Guide your agents using auto-discovered YAML definitions and hot-reloading context injections tailored perfectly per turn.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="marquee-section">
+            <div class="marquee">
+                CONDUCT THE SWARM — YOU DIRECT. THE AGENTS BUILD. — CONDUCT THE SWARM — YOU DIRECT. THE AGENTS BUILD. — 
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2 class="gsap-reveal">Conduct<br>The Swarm</h2>
+            <button class="btn gsap-reveal">Download PigIDE</button>
+        </section>
+    </div>
+</div>
+
+<script src="./node_modules/gsap/dist/gsap.min.js"></script>
+<script src="./node_modules/gsap/dist/ScrollTrigger.min.js"></script>
+<script src="./node_modules/@studio-freight/lenis/dist/lenis.min.js"></script>
+<script src="bundle.js"></script>
+
+</body>
+</html>
