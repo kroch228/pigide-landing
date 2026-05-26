@@ -3,3 +3,6 @@ node_modules/
 *.log
 fix.py
 ai_studio_code*.html
+.playwright-mcp/
+preview.png
+readme-preview.png

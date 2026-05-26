@@ -3,377 +3,763 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PigIDE | Intent Into Motion</title>
+<title>PigIDE — Intent Into Motion</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%B7%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-    @font-face {
-        font-family: 'Syne';
-        font-style: normal;
-        font-weight: 800;
-        src: local('Syne ExtraBold'), local('Syne-ExtraBold'), url(https://fonts.gstatic.com/s/syne/v22/8vIJ7w4brlHql_x-z20t8H2n.woff2) format('woff2');
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+        --bg: #0a0708;
+        --fg: #ffffff;
+        --accent: #ff3366;
+        --warm: #ff9966;
+        --cool: #6633ff;
+        --neon: #00e5ff;
+        --container: 1600px;
+        --gutter: clamp(1.5rem, 4vw, 4rem);
     }
-    @font-face {
-        font-family: 'Syne';
-        font-style: normal;
-        font-weight: 700;
-        src: local('Syne Bold'), local('Syne-Bold'), url(https://fonts.gstatic.com/s/syne/v22/8vIJ7w4brlHql_x-z20t8H2n.woff2) format('woff2');
-    }
-    @font-face {
-        font-family: 'Inter';
-        font-style: normal;
-        font-weight: 400;
-        src: local('Inter Regular'), local('Inter-Regular'), url(https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7W0Q5nw.woff2) format('woff2');
-    }
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    html.lenis, html.lenis body {
-        height: auto;
-    }
-    .lenis.lenis-smooth {
-        scroll-behavior: auto !important;
-    }
-    .lenis.lenis-smooth [data-lenis-prevent] {
-        overscroll-behavior: contain;
-    }
-    .lenis.lenis-stopped {
-        overflow: hidden;
-    }
-    .lenis.lenis-smooth iframe {
-        pointer-events: none;
-    }
-    body {
-        background-color: #0d090a;
-        color: #ffffff;
+    html, body {
+        background: var(--bg);
+        color: var(--fg);
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
         overflow-x: hidden;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        cursor: crosshair;
     }
-    canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
+    html { scrollbar-width: none; }
+    html::-webkit-scrollbar { display: none; }
+    html.lenis, html.lenis body { height: auto; }
+    .lenis.lenis-smooth { scroll-behavior: auto !important; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+    .lenis.lenis-stopped { overflow: hidden; }
+    .lenis.lenis-smooth iframe { pointer-events: none; }
+    body { cursor: none; }
+
+    /* ─── Loader ──────────────────────────────────────────── */
+    .loader {
+        position: fixed; inset: 0;
+        background: var(--bg);
+        z-index: 9999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 2rem;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    .loader.hidden { opacity: 0; visibility: hidden; }
+    .loader-mark {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: clamp(3rem, 10vw, 6rem);
+        letter-spacing: -0.05em;
+        line-height: 1;
+    }
+    .loader-bar-wrap {
+        width: min(360px, 50vw);
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    .loader-bar {
+        position: absolute;
+        height: 100%; width: 0%;
+        background: var(--accent);
+        transition: width 0.1s linear;
+    }
+    .loader-pct {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        letter-spacing: 0.2em;
+    }
+
+    /* ─── Cursor ──────────────────────────────────────────── */
+    .cursor {
+        position: fixed; top: 0; left: 0;
+        width: 36px; height: 36px;
+        border: 1px solid var(--fg);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 10000;
+        transform: translate(-50%, -50%);
+        mix-blend-mode: difference;
+        transition: transform 0.2s ease, width 0.3s, height 0.3s, border-color 0.3s;
+        will-change: transform;
+    }
+    .cursor.hover {
+        width: 80px; height: 80px;
+        background: var(--accent);
+        border-color: var(--accent);
+        mix-blend-mode: normal;
+        opacity: 0.4;
+    }
+    .cursor-dot {
+        position: fixed; top: 0; left: 0;
+        width: 4px; height: 4px;
+        background: var(--fg);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 10001;
+        transform: translate(-50%, -50%);
+        mix-blend-mode: difference;
+        will-change: transform;
+    }
+
+    /* ─── Canvas / WebGL ──────────────────────────────── */
+    canvas#webgl {
+        position: fixed; top: 0; left: 0;
+        width: 100vw; height: 100vh;
         z-index: 0;
         pointer-events: none;
     }
-    #smooth-wrapper {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        overflow: hidden;
+    .grain {
+        position: fixed; inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        opacity: 0.18;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
-    .nav {
+    .vignette {
+        position: fixed; inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 100%);
+    }
+
+    /* ─── Mouse-follow gradient blob ──────────────────── */
+    .blob {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        padding: 2rem 4rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        top: 0; left: 0;
+        width: 600px; height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,51,102,0.35), rgba(102,51,255,0.18) 35%, transparent 65%);
+        filter: blur(80px);
+        pointer-events: none;
+        z-index: 1;
+        transform: translate3d(-50%, -50%, 0);
+        will-change: transform;
+        opacity: 0.7;
+        mix-blend-mode: screen;
+    }
+
+    /* ─── Glitch slices on hero title ──────────────────── */
+    .glitch-wrap { position: relative; }
+    .glitch-layer {
+        position: absolute; inset: 0;
+        pointer-events: none;
+        mix-blend-mode: screen;
+        opacity: 0;
+        will-change: transform, opacity, clip-path;
+    }
+    .glitch-layer--r { color: #ff0044; }
+    .glitch-layer--c { color: #00f0ff; }
+    .glitch-active .glitch-layer { opacity: 0.85; }
+
+    #smooth-wrapper { position: relative; z-index: 3; width: 100%; overflow: hidden; }
+
+    /* ─── Nav ─────────────────────────────────────────── */
+    .nav {
+        position: fixed; top: 0; left: 0; width: 100%;
+        padding: 1.5rem 0;
         z-index: 100;
         mix-blend-mode: difference;
     }
+    .nav .container {
+        display: flex; justify-content: space-between; align-items: center;
+    }
     .logo {
-        font-family: 'Syne', system-ui, sans-serif;
+        font-family: 'Syne', sans-serif;
         font-weight: 800;
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         letter-spacing: -0.05em;
         text-transform: uppercase;
-        display: flex;
-        align-items: center;
+        display: flex; align-items: center;
     }
-    .logo img {
-        height: 1.2em;
-        margin-right: 0.75rem;
-        border-radius: 4px;
-    }
+    .logo img { height: 1.1em; margin-right: 0.6rem; border-radius: 4px; }
     .nav-links {
-        display: flex;
-        gap: 2rem;
-        font-size: 0.9rem;
-        font-weight: 500;
+        display: flex; gap: 2.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        font-weight: 400;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.25em;
     }
-    section {
-        position: relative;
+    .nav-links span { position: relative; cursor: none; }
+    .nav-links span::after {
+        content: ''; position: absolute; bottom: -4px; left: 0;
+        width: 0; height: 1px; background: var(--fg);
+        transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .nav-links span:hover::after { width: 100%; }
+
+    section { position: relative; width: 100%; }
+    .container {
+        max-width: var(--container);
+        margin: 0 auto;
+        padding-left: var(--gutter);
+        padding-right: var(--gutter);
         width: 100%;
     }
+
+    /* hero */
     .hero {
-        height: 150vh;
-        display: flex;
-        flex-direction: column;
+        min-height: 100vh;
+        display: flex; flex-direction: column;
         justify-content: center;
-        padding: 0 4rem;
-        margin-top: -20vh;
+        padding: 8rem 0 4rem;
+        position: relative;
     }
-    h1 {
-        font-family: 'Syne', system-ui, sans-serif;
-        font-size: clamp(4rem, 11vw, 15rem);
+    .hero-tag {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 2.5rem;
+        display: flex; align-items: center; gap: 1rem;
+    }
+    .hero-tag::before {
+        content: ''; width: 32px; height: 1px;
+        background: rgba(255, 255, 255, 0.45);
+    }
+    h1.hero-title {
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(4rem, 13vw, 17rem);
         font-weight: 800;
         line-height: 0.85;
-        letter-spacing: -0.04em;
+        letter-spacing: -0.05em;
         text-transform: uppercase;
-        max-width: 1300px;
-        mix-blend-mode: overlay;
-        color: rgba(255, 255, 255, 0.9);
+        color: rgba(255, 255, 255, 0.95);
+        margin-left: -0.06em;
+    }
+    .hero-title .line { display: block; overflow: hidden; padding-bottom: 0.05em; }
+    .hero-title .line-inner { display: inline-block; transform: translateY(110%); will-change: transform; }
+    .hero-title .accent { color: var(--accent); font-style: italic; }
+    .hero-meta {
+        margin-top: 4rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        max-width: 950px;
     }
     .hero-sub {
-        margin-top: 2rem;
-        font-size: clamp(1rem, 2vw, 1.5rem);
-        max-width: 550px;
+        font-size: clamp(1rem, 1.3vw, 1.2rem);
         line-height: 1.5;
         font-weight: 400;
-        opacity: 0.9;
-        mix-blend-mode: difference;
+        opacity: 0.85;
     }
+    .hero-callout {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.15em;
+        opacity: 0.5;
+        line-height: 1.7;
+    }
+    .hero-callout span { color: var(--accent); }
+    .scroll-hint {
+        position: absolute; bottom: 2.5rem; left: 50%;
+        transform: translateX(-50%);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.4em;
+        opacity: 0.4;
+        text-transform: uppercase;
+        animation: bob 2s ease-in-out infinite;
+    }
+    @keyframes bob {
+        0%, 100% { transform: translate(-50%, 0); }
+        50% { transform: translate(-50%, 8px); }
+    }
+
+    /* manifesto */
     .manifesto {
-        min-height: 150vh;
-        display: flex;
-        align-items: center;
-        padding: 0 4rem;
+        min-height: 100vh;
+        display: flex; align-items: center;
+        padding: 6rem 0;
     }
     .manifesto-text {
-        font-family: 'Syne', system-ui, sans-serif;
-        font-size: clamp(2rem, 6vw, 6rem);
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(2rem, 6.5vw, 6.5rem);
         font-weight: 700;
         line-height: 1;
         max-width: 1400px;
         margin-left: auto;
         text-align: right;
+        letter-spacing: -0.02em;
     }
-    .highlight {
-        color: #ff3366;
-        -webkit-text-stroke: 1px transparent;
+    .manifesto-text .word { display: inline-block; opacity: 0.15; transition: opacity 0.5s; will-change: opacity; }
+    .manifesto-text .highlight { color: var(--accent); }
+
+    /* stats */
+    .stats {
+        padding: 8rem 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(2px);
     }
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+    }
+    .stat { position: relative; }
+    .stat-num {
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(2.5rem, 5vw, 5rem);
+        font-weight: 800;
+        line-height: 1;
+        color: var(--fg);
+        letter-spacing: -0.04em;
+    }
+    .stat-num small { font-size: 0.4em; opacity: 0.5; font-weight: 700; margin-left: 0.2em; }
+    .stat-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        margin-top: 1rem;
+    }
+    .stat-line {
+        position: absolute; left: 0; top: -2rem;
+        width: 0; height: 1px;
+        background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    /* features */
     .features {
-        min-height: 200vh;
-        padding: 10rem 4rem;
-        display: flex;
-        flex-direction: column;
-        gap: 30vh;
+        padding: 12rem 0;
+        display: flex; flex-direction: column;
+        gap: 18rem;
     }
     .feature-block {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 4rem;
+        gap: 5rem;
         align-items: center;
+        width: 100%;
     }
     .feature-block:nth-child(even) {
-        grid-template-columns: 1.5fr 1fr;
+        grid-template-columns: 1.2fr 1fr;
         direction: rtl;
     }
-    .feature-block:nth-child(even) > * {
-        direction: ltr;
+    .feature-block:nth-child(even) > * { direction: ltr; }
+    .feature-num {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.3em;
+        opacity: 0.4;
+        margin-bottom: 1.5rem;
     }
     .feature-title {
-        font-family: 'Syne', system-ui, sans-serif;
-        font-size: clamp(3rem, 5vw, 5rem);
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(2.5rem, 4.5vw, 4.5rem);
         font-weight: 800;
-        line-height: 0.9;
-        margin-bottom: 2rem;
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        margin-bottom: 1.5rem;
     }
     .feature-desc {
-        font-size: 1.25rem;
-        line-height: 1.6;
-        font-weight: 400;
-        opacity: 0.8;
-        max-width: 500px;
+        font-size: 1.05rem;
+        line-height: 1.65;
+        opacity: 0.7;
+        max-width: 460px;
+        margin-bottom: 1.5rem;
     }
-    .marquee-section {
-        height: 50vh;
-        display: flex;
-        align-items: center;
-        overflow: hidden;
-        background: #000;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    .marquee {
-        white-space: nowrap;
-        font-family: 'Syne', system-ui, sans-serif;
-        font-size: 10vw;
-        font-weight: 800;
+    .feature-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .feature-tag {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
         text-transform: uppercase;
-        color: transparent;
-        -webkit-text-stroke: 2px rgba(255, 255, 255, 0.2);
+        padding: 0.4rem 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 100px;
+        opacity: 0.6;
     }
+    .feature-img-wrapper {
+        perspective: 1500px;
+        position: relative;
+        will-change: transform;
+        overflow: visible;
+    }
+    .feature-img-wrapper::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: linear-gradient(135deg, var(--accent), transparent 50%, var(--neon));
+        border-radius: 14px;
+        opacity: 0;
+        z-index: -1;
+        transition: opacity 0.6s;
+        filter: blur(20px);
+    }
+    .feature-img-wrapper:hover::before { opacity: 0.4; }
+    .feature-img-wrapper::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 12px;
+        background: radial-gradient(circle 200px at var(--mx, 50%) var(--my, 50%), rgba(255,51,102,0.35), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.4s;
+        pointer-events: none;
+        z-index: 2;
+        mix-blend-mode: screen;
+    }
+    .feature-img-wrapper:hover::after { opacity: 1; }
+    .feature-img {
+        width: 100%; height: auto;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+        object-fit: cover;
+        transform: scale(0.96);
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease, filter 0.4s ease;
+        display: block;
+        will-change: transform, filter;
+    }
+    .feature-img-wrapper:hover .feature-img {
+        transform: scale(1);
+        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 51, 102, 0.3);
+        filter: saturate(1.15) contrast(1.05);
+    }
+
+    /* marquee */
+    .marquee-section {
+        padding: 4rem 0;
+        overflow: hidden;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .marquee-track {
+        display: inline-flex; gap: 4vw;
+        white-space: nowrap;
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(4rem, 12vw, 14rem);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.05em;
+        text-transform: uppercase;
+        will-change: transform;
+    }
+    .marquee-track span {
+        display: inline-block;
+        padding-right: 4vw;
+        color: transparent;
+        -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.25);
+    }
+    .marquee-track span:nth-child(odd) {
+        color: rgba(255, 255, 255, 0.04);
+        -webkit-text-stroke: 0;
+    }
+    .marquee-track span .dot { color: var(--accent); -webkit-text-stroke: 0; }
+
+    /* CTA */
     .cta {
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+        min-height: 100vh;
+        display: flex; flex-direction: column;
+        justify-content: center; align-items: center;
         text-align: center;
+        padding: 4rem 0;
+        position: relative;
+        overflow: hidden;
+    }
+    .cta-aurora {
+        position: absolute; inset: -20%;
+        background:
+          radial-gradient(circle at 20% 30%, rgba(255,51,102,0.6), transparent 40%),
+          radial-gradient(circle at 80% 60%, rgba(0,229,255,0.45), transparent 45%),
+          radial-gradient(circle at 50% 80%, rgba(102,51,255,0.5), transparent 40%);
+        filter: blur(60px);
+        opacity: 0.4;
+        animation: aurora 18s ease-in-out infinite alternate;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .cta > * { position: relative; z-index: 1; }
+    @keyframes aurora {
+        0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        33% { transform: translate(-5%, -3%) scale(1.1) rotate(8deg); }
+        66% { transform: translate(4%, 2%) scale(0.95) rotate(-6deg); }
     }
     .cta h2 {
-        font-family: 'Syne', system-ui, sans-serif;
-        font-size: clamp(4rem, 10vw, 12rem);
+        font-family: 'Syne', sans-serif;
+        font-size: clamp(4rem, 12vw, 14rem);
         font-weight: 800;
         line-height: 0.9;
         letter-spacing: -0.05em;
         margin-bottom: 3rem;
-        mix-blend-mode: difference;
+        text-transform: uppercase;
+    }
+    .cta-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        margin-bottom: 4rem;
     }
     .btn {
-        padding: 1.5rem 4rem;
-        border: 1px solid rgba(255,255,255,0.5);
-        border-radius: 100px;
-        font-size: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        font-weight: 500;
-        cursor: pointer;
-        background: transparent;
-        color: #fff;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         position: relative;
+        padding: 1.6rem 4rem;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 100px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-weight: 400;
+        background: transparent;
+        color: var(--fg);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         overflow: hidden;
+        display: inline-flex; align-items: center; gap: 0.75rem;
+        will-change: transform;
     }
     .btn::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #ff3366;
+        content: ''; position: absolute; inset: 0;
+        background: var(--accent);
         z-index: -1;
         transform: scaleY(0);
         transform-origin: bottom;
-        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .btn:hover {
-        color: #000;
-        border-color: #ff3366;
+    .btn:hover { color: var(--bg); border-color: var(--accent); }
+    .btn:hover::before { transform: scaleY(1); }
+    .btn .arrow { display: inline-block; transition: transform 0.4s; }
+    .btn:hover .arrow { transform: translateX(6px); }
+
+    /* footer */
+    .footer {
+        padding: 4rem 0 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        display: flex;
+        justify-content: space-between;
     }
-    .btn:hover::before {
-        transform: scaleY(1);
-    }
-    .gsap-reveal {
-        opacity: 0;
-        transform: translateY(100px);
-    }
-    .feature-img-wrapper {
-        perspective: 1200px;
-    }
-    .feature-img {
-        width: 100%;
-        height: auto;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
-        object-fit: cover;
-        transform: rotateY(-8deg) scale(0.95);
-        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
-    }
-    .feature-block:nth-child(even) .feature-img {
-        transform: rotateY(8deg) scale(0.95);
-    }
-    .feature-img:hover {
-        transform: rotateY(0deg) scale(1.02);
-        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 51, 102, 0.4);
-    }
+
+    .gsap-fade { opacity: 0; transform: translateY(60px); will-change: transform, opacity; }
+
     @media (max-width: 768px) {
-        .nav { padding: 1.5rem 2rem; }
-        .hero { padding: 0 2rem; margin-top: -10vh; }
-        .manifesto { padding: 0 2rem; }
-        .features { padding: 5rem 2rem; gap: 15vh; }
+        .nav { padding: 1.2rem 1.5rem; }
+        .hero { padding: 6rem 0 4rem; }
+        .hero-meta { grid-template-columns: 1fr; gap: 2rem; }
+        .manifesto { padding: 4rem 0; }
+        .features { padding: 6rem 0; gap: 8rem; }
         .feature-block, .feature-block:nth-child(even) { grid-template-columns: 1fr; gap: 2rem; }
+        .stats { padding: 4rem 0; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .cursor, .cursor-dot { display: none; }
+        body { cursor: auto; }
     }
 </style>
 </head>
 <body>
 
+<div class="loader" id="loader">
+    <div class="loader-mark">PigIDE</div>
+    <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
+    <div class="loader-pct" id="loader-pct">00%</div>
+</div>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-dot" id="cursor-dot"></div>
+
 <canvas id="webgl"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div class="blob" id="blob"></div>
 
 <nav class="nav">
+  <div class="container">
     <div class="logo"><img src="./assets/icon.png" alt="PigIDE"> PigIDE.</div>
     <div class="nav-links">
-        <span>Swarm</span>
-        <span>Memory</span>
-        <span>Agents</span>
+        <span data-magnet>Swarm</span>
+        <span data-magnet>Memory</span>
+        <span data-magnet>Voice</span>
+        <span data-magnet>Skills</span>
     </div>
+  </div>
 </nav>
 
 <div id="smooth-wrapper">
     <div id="smooth-content">
+
         <section class="hero">
-            <h1 class="gsap-reveal">Intent Into<br>Motion</h1>
-            <p class="hero-sub gsap-reveal">A desktop IDE that hosts a pool of CLI coding agents as tiled terminal panes. You direct. The swarm builds.</p>
+          <div class="container">
+            <div class="hero-tag gsap-fade">v0.1.0 · desktop ide for swarm operators</div>
+            <h1 class="hero-title glitch-wrap" id="hero-title">
+                <span class="line"><span class="line-inner">Intent</span></span>
+                <span class="line"><span class="line-inner">Into <span class="accent">Motion</span>.</span></span>
+            </h1>
+            <div class="hero-meta">
+                <p class="hero-sub gsap-fade">A desktop IDE that hosts a pool of CLI coding agents as tiled terminal panes. You direct. The swarm builds. Voice in. Code out.</p>
+                <div class="hero-callout gsap-fade">
+                    <span>→</span> Tauri 2.x · React 19<br>
+                    <span>→</span> 6 agent runtimes · 1 conductor<br>
+                    <span>→</span> sub-300ms voice partials<br>
+                    <span>→</span> all on your machine
+                </div>
+            </div>
+          </div>
+            <div class="scroll-hint">Scroll · Conduct · Build</div>
         </section>
 
         <section class="manifesto">
-            <div class="manifesto-text gsap-reveal">
+          <div class="container">
+            <div class="manifesto-text" id="manifesto-text">
                 You direct the orchestra. No more context switching. <span class="highlight">A workspace</span> where AI agents route intent into motion.
             </div>
+          </div>
+        </section>
+
+        <section class="stats">
+          <div class="container">
+            <div class="stats-grid">
+                <div class="stat gsap-fade">
+                    <div class="stat-line"></div>
+                    <div class="stat-num" data-target="6"><span class="stat-counter">0</span></div>
+                    <div class="stat-label">Agent runtimes</div>
+                </div>
+                <div class="stat gsap-fade">
+                    <div class="stat-line"></div>
+                    <div class="stat-num"><span class="stat-counter" data-target="300">0</span><small>ms</small></div>
+                    <div class="stat-label">Voice latency</div>
+                </div>
+                <div class="stat gsap-fade">
+                    <div class="stat-line"></div>
+                    <div class="stat-num"><span class="stat-counter" data-target="120">0</span><small>k</small></div>
+                    <div class="stat-label">GPU particles</div>
+                </div>
+                <div class="stat gsap-fade">
+                    <div class="stat-line"></div>
+                    <div class="stat-num"><span class="stat-counter" data-target="100">0</span><small>%</small></div>
+                    <div class="stat-label">Local first</div>
+                </div>
+            </div>
+          </div>
         </section>
 
         <section class="features">
+          <div class="container">
             <div class="feature-block">
-                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target.png" alt="Swarm Orchestration" class="feature-img"></div>
+                <div class="feature-img-wrapper" data-tilt><img src="./assets/screens/swarm.png" alt="Swarm" class="feature-img"></div>
                 <div>
-                    <h2 class="feature-title gsap-reveal">Swarm<br>Orchestration</h2>
-                    <p class="feature-desc gsap-reveal">Coordinate a roster of specialized agents: aider, claude, devin, and agy. Assign roles like Orchestrator, Builder, Reviewer, and Scout right from your panes.</p>
-                </div>
-            </div>
-            
-            <div class="feature-block">
-                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target_dark_screenshot.png" alt="Autonomous Workflow" class="feature-img"></div>
-                <div>
-                    <h2 class="feature-title gsap-reveal">Autonomous<br>Workflow</h2>
-                    <p class="feature-desc gsap-reveal">Built-in tasks state machine, file locks, and review gates with pass/fail votes keep the swarm aligned and code pristine across multiple agents.</p>
-                </div>
-            </div>
-
-            <div class="feature-block">
-                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/chat.png" alt="Persistent Memory" class="feature-img"></div>
-                <div>
-                    <h2 class="feature-title gsap-reveal">Persistent<br>Memory</h2>
-                    <p class="feature-desc gsap-reveal">Long-term context saved in .pigmemory with full-text search, wikilinks, and fuzzy project resolution ensures your swarm never forgets a decision.</p>
-                </div>
-            </div>
-            <div class="feature-block">
-                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target_light_screenshot.png" alt="PigVoice" class="feature-img"></div>
-                <div>
-                    <h2 class="feature-title gsap-reveal">PigVoice<br>Integration</h2>
-                    <p class="feature-desc gsap-reveal">Instant sub-300ms voice-to-text. Stream your intent directly via an on-device Whisper engine, capturing partials flawlessly with LocalAgreement-2 stabilization.</p>
+                    <div class="feature-num gsap-fade">01 / Swarm</div>
+                    <h2 class="feature-title gsap-fade">Swarm<br>Orchestration</h2>
+                    <p class="feature-desc gsap-fade">Coordinate a roster of specialised agents — aider, claude, opencode, devin, agy, codex — each in a tiled terminal pane. Roles: orchestrator, builder, reviewer, scout. You speak, the layout reacts.</p>
+                    <div class="feature-tags gsap-fade">
+                        <span class="feature-tag">tiled panes</span>
+                        <span class="feature-tag">role routing</span>
+                        <span class="feature-tag">live layout</span>
+                    </div>
                 </div>
             </div>
 
             <div class="feature-block">
-                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/panel.png" alt="Watcher" class="feature-img"></div>
+                <div class="feature-img-wrapper" data-tilt><img src="./assets/screens/workflow.png" alt="Workflow" class="feature-img"></div>
                 <div>
-                    <h2 class="feature-title gsap-reveal">Background<br>Watcher</h2>
-                    <p class="feature-desc gsap-reveal">A seamless supervisor utilizing Gemini Flash-Lite that monitors agent stdout, classifies logs, and intelligently escalates blockers to human review without hanging your workflow.</p>
+                    <div class="feature-num gsap-fade">02 / Workflow</div>
+                    <h2 class="feature-title gsap-fade">Autonomous<br>Workflow</h2>
+                    <p class="feature-desc gsap-fade">Built-in task state machine, file locks, and review gates with quorum voting keep the swarm aligned and code pristine across multiple agents working the same repo.</p>
+                    <div class="feature-tags gsap-fade">
+                        <span class="feature-tag">state machine</span>
+                        <span class="feature-tag">file locks</span>
+                        <span class="feature-tag">quorum gates</span>
+                    </div>
                 </div>
             </div>
 
             <div class="feature-block">
-                <div class="feature-img-wrapper gsap-reveal"><img src="./assets/target_dark_screenshot.png" alt="Skills" class="feature-img" style="filter: hue-rotate(90deg) saturate(1.5);"></div>
+                <div class="feature-img-wrapper" data-tilt><img src="./assets/screens/pigvoice.png" alt="Voice" class="feature-img"></div>
                 <div>
-                    <h2 class="feature-title gsap-reveal">Extensible<br>Skills</h2>
-                    <p class="feature-desc gsap-reveal">Dynamic Architect prompt-modules. Guide your agents using auto-discovered YAML definitions and hot-reloading context injections tailored perfectly per turn.</p>
+                    <div class="feature-num gsap-fade">03 / Voice</div>
+                    <h2 class="feature-title gsap-fade">Sub-300ms<br>PigVoice</h2>
+                    <p class="feature-desc gsap-fade">Speak in plain language. Local STT streams partials to the orchestrator while you're still talking. No round-trip to the cloud.</p>
+                    <div class="feature-tags gsap-fade">
+                        <span class="feature-tag">local STT</span>
+                        <span class="feature-tag">streaming</span>
+                        <span class="feature-tag">VAD</span>
+                    </div>
                 </div>
             </div>
+
+            <div class="feature-block">
+                <div class="feature-img-wrapper" data-tilt><img src="./assets/screens/memory.png" alt="Memory" class="feature-img"></div>
+                <div>
+                    <div class="feature-num gsap-fade">04 / Memory</div>
+                    <h2 class="feature-title gsap-fade">Workspace<br>Memory</h2>
+                    <p class="feature-desc gsap-fade">Conversations, decisions, and artifacts persist per workspace. Agents recall context across restarts; you keep the receipts.</p>
+                    <div class="feature-tags gsap-fade">
+                        <span class="feature-tag">SQLite</span>
+                        <span class="feature-tag">per-workspace</span>
+                        <span class="feature-tag">structured</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-img-wrapper" data-tilt><img src="./assets/screens/watcher.png" alt="Watcher" class="feature-img"></div>
+                <div>
+                    <div class="feature-num gsap-fade">05 / Watcher</div>
+                    <h2 class="feature-title gsap-fade">Background<br>Watcher</h2>
+                    <p class="feature-desc gsap-fade">A seamless supervisor on Gemini Flash-Lite that monitors agent stdout, classifies events, and intelligently escalates blockers to human review without hanging the swarm.</p>
+                    <div class="feature-tags gsap-fade">
+                        <span class="feature-tag">Gemini</span>
+                        <span class="feature-tag">stdout classify</span>
+                        <span class="feature-tag">human escalate</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-img-wrapper" data-tilt><img src="./assets/screens/skills.png" alt="Skills" class="feature-img"></div>
+                <div>
+                    <div class="feature-num gsap-fade">06 / Skills</div>
+                    <h2 class="feature-title gsap-fade">Extensible<br>Skills</h2>
+                    <p class="feature-desc gsap-fade">Dynamic Architect prompt-modules. Auto-discovered YAML definitions, hot-reloading context injections, tailored per turn. Your prompts become a system.</p>
+                    <div class="feature-tags gsap-fade">
+                        <span class="feature-tag">YAML</span>
+                        <span class="feature-tag">hot-reload</span>
+                        <span class="feature-tag">per-turn inject</span>
+                    </div>
+                </div>
+            </div>
+          </div>
         </section>
 
         <section class="marquee-section">
-            <div class="marquee">
-                CONDUCT THE SWARM — YOU DIRECT. THE AGENTS BUILD. — CONDUCT THE SWARM — YOU DIRECT. THE AGENTS BUILD. — 
+            <div class="marquee-track" id="marquee-track">
+                <span>Conduct</span><span>The<span class="dot">·</span>Swarm</span><span>You<span class="dot">·</span>Direct</span><span>Agents<span class="dot">·</span>Build</span>
+                <span>Conduct</span><span>The<span class="dot">·</span>Swarm</span><span>You<span class="dot">·</span>Direct</span><span>Agents<span class="dot">·</span>Build</span>
             </div>
         </section>
 
         <section class="cta">
-            <h2 class="gsap-reveal">Conduct<br>The Swarm</h2>
-            <button class="btn gsap-reveal">Download PigIDE</button>
+          <div class="cta-aurora"></div>
+          <div class="container">
+            <div class="cta-sub gsap-fade">v0.1.0 · macOS · Linux · Windows</div>
+            <h2 class="gsap-fade">Conduct<br>The Swarm</h2>
+            <button class="btn" data-magnet>Download PigIDE <span class="arrow">→</span></button>
+          </div>
         </section>
+
+        <footer class="footer">
+          <div class="container" style="display:flex; justify-content:space-between;">
+            <div>© 2026 PigIDE</div>
+            <div>Tauri · React · Rust · Three.js</div>
+            <div>local · forever</div>
+          </div>
+        </footer>
     </div>
 </div>
 
